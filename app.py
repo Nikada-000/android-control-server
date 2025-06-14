@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 import base64
 
@@ -51,24 +51,25 @@ def poll(device_id):
 def upload_photo():
     data = request.get_json()
     device_id = data.get("device_id")
-    image_b64 = data.get("image")
+    image_data = data.get("image")
 
-    if not device_id or not image_b64:
-        return jsonify({"error": "Missing device_id or image"}), 400
+    if not device_id or not image_data:
+        return jsonify({"error": "Missing data"}), 400
 
-    try:
-        image_data = base64.b64decode(image_b64)
-        filename = f"{device_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.jpg"
-        filepath = os.path.join(UPLOAD_DIR, filename)
+    from base64 import b64decode
+    from os import makedirs
+    from datetime import datetime
+    from pathlib import Path
 
-        with open(filepath, "wb") as f:
-            f.write(image_data)
+    folder = Path("uploaded_photos")
+    folder.mkdir(exist_ok=True)
+    filename = f"{device_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
 
-        print(f"✅ Image saved to: {filepath}")
-        return jsonify({"message": "Image received", "file": filename}), 200
-    except Exception as e:
-        print("❌ Failed to save image:", e)
-        return jsonify({"error": "Failed to decode image"}), 500
+    with open(folder / filename, "wb") as f:
+        f.write(b64decode(image_data))
+
+    print(f"✅ Image saved to: {folder / filename}")
+    return jsonify({"message": "Image saved"}), 200
 
 @app.route("/photos/<filename>")
 def get_photo(filename):
