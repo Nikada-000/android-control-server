@@ -52,3 +52,8 @@ def command(device_id):
         return jsonify({"status": "command set", "command": new_cmd})
 
     return jsonify({"error": "Invalid request"}), 400
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
+
