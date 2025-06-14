@@ -1,33 +1,35 @@
-# app.py
 from flask import Flask, request, jsonify
-import time
 
 app = Flask(__name__)
-devices = {}  # Store devices in memory
 
-@app.route("/")
-def home():
-    return "✅ Android Control Server Running"
+# In-memory device store (for demo)
+devices = []
 
 @app.route("/register", methods=["POST"])
 def register():
     data = request.json
     device_id = data.get("device_id")
-    if not device_id:
-        return jsonify({"error": "Missing device_id"}), 400
+    
+    # Check if device already exists
+    existing = next((d for d in devices if d["device_id"] == device_id), None)
+    if not existing:
+        devices.append(data)
+    else:
+        # Update existing device data
+        existing.update(data)
 
-    devices[device_id] = {
-        "device_id": device_id,
-        "name": data.get("name", "Unknown Device"),
-        "ip": data.get("ip", request.remote_addr),
-        "status": data.get("status", "online"),
-        "last_seen": time.strftime("%Y-%m-%d %H:%M:%S")
-    }
-    return jsonify({"message": "Device registered successfully"}), 200
+    print(f"📲 Device registered: {data}")
+    return jsonify({"message": "Device registered"}), 200
 
 @app.route("/devices", methods=["GET"])
 def get_devices():
-    return jsonify(list(devices.values()))
+    return jsonify(devices), 200
+
+# Optional home page
+@app.route("/", methods=["GET"])
+def home():
+    return "✅ Android Control Server is running."
+
 
 @app.route("/command", methods=["POST"])
 def send_command():
