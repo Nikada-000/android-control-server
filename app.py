@@ -3,7 +3,6 @@ from flask import Flask, request, jsonify
 import time
 
 app = Flask(__name__)
-
 devices = {}  # Store devices in memory
 
 @app.route("/")
@@ -36,8 +35,3 @@ def send_command():
     device_id = data.get("device_id")
     command = data.get("command")
     return jsonify({"message": f"Command '{command}' sent to {device_id}"})
-
-if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
