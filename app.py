@@ -38,4 +38,6 @@ def send_command():
     command = data.get("command")
     return jsonify({"message": f"Command '{command}' sent to {device_id}"})
 
-
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))  # default to 5000 if PORT is not set
+    app.run(host="0.0.0.0", port=port)
