@@ -38,5 +38,4 @@ def send_command():
     command = data.get("command")
     return jsonify({"message": f"Command '{command}' sent to {device_id}"})
 
-if __name__ == "__main__":
-    app.run(debug=True)
+
