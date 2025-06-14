@@ -19,7 +19,7 @@ def register():
     if not device_id:
         return jsonify({"error": "No device_id"}), 400
 
-    data["last_seen"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    data["last_seen"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     devices[device_id] = data
     return jsonify({"message": "Registered"}), 200
 
