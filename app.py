@@ -1,59 +1,43 @@
+# app.py
 from flask import Flask, request, jsonify
-import json
-import os
+import time
 
 app = Flask(__name__)
 
-COMMAND_FILE = 'commands.json'
+devices = {}  # Store devices in memory
 
-# Load commands if they exist
-if not os.path.exists(COMMAND_FILE):
-    with open(COMMAND_FILE, 'w') as f:
-        json.dump({}, f)
+@app.route("/")
+def home():
+    return "✅ Android Control Server Running"
 
-def load_commands():
-    with open(COMMAND_FILE, 'r') as f:
-        return json.load(f)
-
-def save_commands(data):
-    with open(COMMAND_FILE, 'w') as f:
-        json.dump(data, f, indent=2)
-
-@app.route('/')
-def index():
-    return "✅ Android Remote Command Server is Running"
-
-@app.route('/register', methods=['POST'])
+@app.route("/register", methods=["POST"])
 def register():
-    device_id = request.json.get('device_id')
+    data = request.json
+    device_id = data.get("device_id")
     if not device_id:
         return jsonify({"error": "Missing device_id"}), 400
 
-    commands = load_commands()
-    if device_id not in commands:
-        commands[device_id] = {"command": "none"}
-        save_commands(commands)
-    return jsonify({"status": "registered", "device_id": device_id})
+    devices[device_id] = {
+        "device_id": device_id,
+        "name": data.get("name", "Unknown Device"),
+        "ip": data.get("ip", request.remote_addr),
+        "status": data.get("status", "online"),
+        "last_seen": time.strftime("%Y-%m-%d %H:%M:%S")
+    }
+    return jsonify({"message": "Device registered successfully"}), 200
 
-@app.route('/command/<device_id>', methods=['GET', 'POST'])
-def command(device_id):
-    commands = load_commands()
+@app.route("/devices", methods=["GET"])
+def get_devices():
+    return jsonify(list(devices.values()))
 
-    if request.method == 'GET':
-        cmd = commands.get(device_id, {"command": "none"})
-        return jsonify(cmd)
+@app.route("/command", methods=["POST"])
+def send_command():
+    data = request.json
+    device_id = data.get("device_id")
+    command = data.get("command")
+    return jsonify({"message": f"Command '{command}' sent to {device_id}"})
 
-    if request.method == 'POST':
-        new_cmd = request.json.get('command')
-        if not new_cmd:
-            return jsonify({"error": "Missing command"}), 400
-        commands[device_id] = {"command": new_cmd}
-        save_commands(commands)
-        return jsonify({"status": "command set", "command": new_cmd})
-
-    return jsonify({"error": "Invalid request"}), 400
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
-
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
