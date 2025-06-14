@@ -1,44 +1,45 @@
 from flask import Flask, request, jsonify
-import os
+from datetime import datetime
 
 app = Flask(__name__)
 
-# In-memory device store (for demo)
-devices = []
+# Stores all registered devices and their latest data
+devices = {}
 
 @app.route("/register", methods=["POST"])
 def register():
-    data = request.json
+    data = request.get_json()
     device_id = data.get("device_id")
-    
-    # Check if device already exists
-    existing = next((d for d in devices if d["device_id"] == device_id), None)
-    if not existing:
-        devices.append(data)
-    else:
-        # Update existing device data
-        existing.update(data)
+    if not device_id:
+        return jsonify({"error": "No device_id"}), 400
 
-    print(f"📲 Device registered: {data}")
-    return jsonify({"message": "Device registered"}), 200
+    data["last_seen"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    devices[device_id] = data
+    return jsonify({"message": "Registered"}), 200
 
 @app.route("/devices", methods=["GET"])
-def get_devices():
-    return jsonify(devices), 200
-
-# Optional home page
-@app.route("/", methods=["GET"])
-def home():
-    return "✅ Android Control Server is running."
-
+def list_devices():
+    return jsonify(list(devices.values())), 200
 
 @app.route("/command", methods=["POST"])
 def send_command():
-    data = request.json
+    data = request.get_json()
     device_id = data.get("device_id")
     command = data.get("command")
-    return jsonify({"message": f"Command '{command}' sent to {device_id}"})
+
+    if device_id in devices:
+        devices[device_id]["pending_command"] = command
+        return jsonify({"message": "Command sent"}), 200
+    return jsonify({"error": "Device not found"}), 404
+
+@app.route("/poll/<device_id>", methods=["GET"])
+def poll(device_id):
+    device = devices.get(device_id)
+    if not device:
+        return jsonify({"error": "Device not registered"}), 404
+
+    command = device.pop("pending_command", None)
+    return jsonify({"command": command}), 200
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # default to 5000 if PORT is not set
-    app.run(host="0.0.0.0", port=port)
+    app.run(debug=True, host="0.0.0.0", port=5000)
